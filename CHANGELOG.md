@@ -1,6 +1,6 @@
 # Changelog - mcp-eu-compliance
 
-## Unreleased
+## [0.4.0] - 2026-07-28
 
 ### Added
 
@@ -24,8 +24,9 @@
 - `enum` values are intentionally **not** enforced - out-of-enum values currently reach the
   upstream and sometimes work, so tightening that is a behaviour change wider than the defect
   being fixed.
-- Version numbers untouched: releasing bumps `package.json`, `server.json` and the
-  `serverInfo` literal in `src/index.ts` together.
+- Released as 0.4.0: `package.json`, `server.json` and the `serverInfo` literal in
+  `src/index.ts` bumped together. `serverInfo` had drifted behind the published version,
+  so the handshake reported an older release than npm actually served.
 
 ## v0.3.0 - 2026-07-04
 
