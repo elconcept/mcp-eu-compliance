@@ -10,7 +10,8 @@
     "dev": "tsx src/index.ts",
     "fetch-corpus": "node scripts/fetch-corpus.mjs",
     "smoke": "node test/smoke.mjs",
-    "drift": "node test/drift.mjs"
+    "drift": "node test/drift.mjs",
+    "test:conformance": "node test/invalid-args.mjs"
   },
   "keywords": [
     "mcp",
