@@ -1,0 +1,233 @@
+{
+  "package_version": "0.4.0",
+  "toolset_sha256": "13865c84d46a718e53ad8560291cdf1027145d16969da756875d48be05118299",
+  "tools": {
+    "eu_article": {
+      "sha256": "238839babe3a1324c2ffaa0bec96c1939662e366574396110f1b2aff565dccb5",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "description": "Pelny tekst artykulu (verbatim) po identyfikatorze regulacji i numerze artykulu, wraz z tytulem i rozdzialem. Bledy: `out_of_scope` (regulacja poza 6 ICP), `missing_arg` (brak article_number), `not_found` (artykul/regulacja nie ma w snapshot).",
+        "inputSchema": {
+          "properties": {
+            "article_number": {
+              "description": "Numer artykulu, np. '33' (GDPR), '6' (AI Act).",
+              "type": "string"
+            },
+            "regulation": {
+              "enum": [
+                "GDPR",
+                "AI_ACT",
+                "DORA",
+                "NIS2",
+                "EIDAS2",
+                "CRA",
+                "DSA",
+                "DMA",
+                "DATA_ACT",
+                "DGA",
+                "LED",
+                "EPRIVACY",
+                "CYBERSECURITY_ACT",
+                "CER"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "regulation",
+            "article_number"
+          ],
+          "type": "object"
+        },
+        "name": "eu_article"
+      }
+    },
+    "eu_check_applicability": {
+      "sha256": "99ef8b584ee31f94242d56af3108008b5665508a9a9707412a2aceba50a96d3c",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "description": "Ktore z 14 regulacji UE dotycza danego sektora (i opcjonalnie podsektora). Zwraca reguly stosowalnosci z poziomem pewnosci i artykulem-podstawa. To wskazowka ekspercka, nie wiazaca ocena prawna. Bledy: `missing_arg` (brak sector), `corpus_error`.",
+        "inputSchema": {
+          "properties": {
+            "sector": {
+              "enum": [
+                "digital_infrastructure",
+                "energy",
+                "financial",
+                "healthcare",
+                "manufacturing",
+                "public_administration",
+                "transport",
+                "other"
+              ],
+              "type": "string"
+            },
+            "subsector": {
+              "description": "Opcjonalny podsektor (np. 'bank', 'insurance').",
+              "type": "string"
+            }
+          },
+          "required": [
+            "sector"
+          ],
+          "type": "object"
+        },
+        "name": "eu_check_applicability"
+      }
+    },
+    "eu_compare": {
+      "sha256": "32e324c73ca8906e1de44ca3668c80cc38a91833926423d9dbdde05ef29fd8a8",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "description": "Porownanie tego samego zagadnienia w kilku regulacjach naraz. Dla kazdej regulacji zwraca najlepiej pasujacy artykul (snippet verbatim). Np. obowiazek zgloszenia incydentu w DORA vs NIS2 vs CRA. Bledy: `empty_query`, `corpus_error`.",
+        "inputSchema": {
+          "properties": {
+            "query": {
+              "description": "Zagadnienie do porownania.",
+              "type": "string"
+            },
+            "regulations": {
+              "description": "Regulacje do porownania (min. 2). Brak = wszystkie 6.",
+              "items": {
+                "enum": [
+                  "GDPR",
+                  "AI_ACT",
+                  "DORA",
+                  "NIS2",
+                  "EIDAS2",
+                  "CRA",
+                  "DSA",
+                  "DMA",
+                  "DATA_ACT",
+                  "DGA",
+                  "LED",
+                  "EPRIVACY",
+                  "CYBERSECURITY_ACT",
+                  "CER"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "name": "eu_compare"
+      }
+    },
+    "eu_evidence": {
+      "sha256": "78b74a863dc3bee2fd70487698fe0e4006c47f9e54e743101030db887b6a39a0",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "description": "Artefakty dowodowe (audit) wymagane przez regulacje - jaki dokument/log/certyfikat udowadnia zgodnosc, dla jakiego artykulu, z pytaniami audytora. Opcjonalnie zawezone do jednego artykulu. Bledy: `out_of_scope`, `corpus_error`.",
+        "inputSchema": {
+          "properties": {
+            "article": {
+              "description": "Opcjonalny numer artykulu do zawezenia.",
+              "type": "string"
+            },
+            "regulation": {
+              "enum": [
+                "GDPR",
+                "AI_ACT",
+                "DORA",
+                "NIS2",
+                "EIDAS2",
+                "CRA",
+                "DSA",
+                "DMA",
+                "DATA_ACT",
+                "DGA",
+                "LED",
+                "EPRIVACY",
+                "CYBERSECURITY_ACT",
+                "CER"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "regulation"
+          ],
+          "type": "object"
+        },
+        "name": "eu_evidence"
+      }
+    },
+    "eu_search": {
+      "sha256": "28af21dd7db4ad80fef968af41a2e8ffbb7af0d25b30fdf2fe5cb8e35118f4c8",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "description": "Wyszukiwanie pelnotekstowe (FTS5) po tresci artykulow regulacji UE. Zwraca snippety verbatim z podswietleniem trafien. Zakres: 14 regulacji digital/data/cyber (GDPR, AI Act, DORA, NIS2, eIDAS 2.0, CRA, DSA, DMA, Data Act, DGA, LED, ePrivacy, Cybersecurity Act, CER). Bledy: `empty_query` (po normalizacji brak slow), `corpus_error` (blad SQLite).",
+        "inputSchema": {
+          "properties": {
+            "limit": {
+              "description": "Maks. liczba trafien (domyslnie 8, max 25).",
+              "type": "number"
+            },
+            "query": {
+              "description": "Fraza w jezyku naturalnym, np. 'breach notification timeline'.",
+              "type": "string"
+            },
+            "regulations": {
+              "description": "Opcjonalny podzbior regulacji. Brak = wszystkie 6.",
+              "items": {
+                "enum": [
+                  "GDPR",
+                  "AI_ACT",
+                  "DORA",
+                  "NIS2",
+                  "EIDAS2",
+                  "CRA",
+                  "DSA",
+                  "DMA",
+                  "DATA_ACT",
+                  "DGA",
+                  "LED",
+                  "EPRIVACY",
+                  "CYBERSECURITY_ACT",
+                  "CER"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "name": "eu_search"
+      }
+    }
+  }
+}
