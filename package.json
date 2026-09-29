@@ -12,7 +12,8 @@
     "fetch-corpus": "node scripts/fetch-corpus.mjs",
     "smoke": "node test/smoke.mjs",
     "drift": "node test/drift.mjs",
-    "test:conformance": "node test/invalid-args.mjs"
+    "test:conformance": "node test/invalid-args.mjs",
+    "test": "npm run build && npm run drift && npm run test:descriptors && npm run test:conformance && npm run smoke"
   },
   "keywords": [
     "mcp",
