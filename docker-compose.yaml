@@ -1,5 +1,5 @@
 # mcp-eu-compliance - offline korpus EUR-Lex (GDPR, AI Act, DORA, NIS2...) (stdio z repo -> supergateway, Streamable HTTP /mcp, port 8000). Stack Portainera "mcp-eu-compliance".
-# Bez portu na hoscie. Dostep wylacznie: https://mcp-eu-compliance.xlap.pl/mcp - tunel cloudflared, bez Access (publiczny,
+# Port na hoscie 8409 (LAN, bez autoryzacji: http://10.0.10.201:8409/mcp). Z internetu: https://mcp-eu-compliance.xlap.pl/mcp - tunel cloudflared, bez Access (publiczny,
 # bezstanowy - konektory claude.ai/ChatGPT). cf_mcp_eu_compliance: cloudflared + ten serwis, z wyjsciem do internetu.
 # Przebudowa po pushu na main: deploy-hook (.github/workflows/deploy.yml).
 services:
@@ -12,6 +12,8 @@ services:
     user: "1029:100"
     environment:
       - TZ=Europe/Warsaw
+    ports:
+      - "8409:8000"
     networks:
       - cf_mcp_eu_compliance
     healthcheck:
