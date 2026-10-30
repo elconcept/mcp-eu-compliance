@@ -441,6 +441,22 @@ type ToolResult = {
     isError?: boolean;
 };
 
+/** Code Mode MCP może eksponować tylko structuredContent, pomijając content.
+ * Zachowujemy oryginalny content bez zmian, ale tekst udostępniamy też w strukturze.
+ * Ważne: zwielokrotnienie payloadu wymaga oceny kosztu i limitów przed produkcją.
+ */
+function withStructuredText(result: ToolResult): ToolResult {
+    const text = result.content.filter(x => x.type === "text").map(x => x.text).join("\n");
+    return {
+        ...result,
+        structuredContent: {
+            ...(result.structuredContent ?? {}),
+            text,
+            text_length: text.length,
+        },
+    };
+}
+
 // Strukturalne kody bledow widoczne dla LLM (drift test test/drift.mjs
 // asercja: kazdy kod tu uzyty musi byc w description odpowiedniego tool +
 // w sekcji "Iteracja po bledach" INSTRUCTIONS).
@@ -840,20 +856,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Narzędzia Cellar/TSUE/GDPRhub działają przez tę samą sesję MCP.
     // W odpowiedzi zachowujemy oba pola: content i structuredContent.
     if (LIVE_TOOLS.some((t) => t.name === name)) {
-        return await callLiveTool(name, a);
+        return withStructuredText(await callLiveTool(name, a));
     }
     try {
         switch (name) {
             case "eu_search":
-                return handleSearch(a);
+                return withStructuredText(handleSearch(a));
             case "eu_article":
-                return handleArticle(a);
+                return withStructuredText(handleArticle(a));
             case "eu_compare":
-                return handleCompare(a);
+                return withStructuredText(handleCompare(a));
             case "eu_check_applicability":
-                return handleApplicability(a);
+                return withStructuredText(handleApplicability(a));
             case "eu_evidence":
-                return handleEvidence(a);
+                return withStructuredText(handleEvidence(a));
             default:
                 return errorResult(`Nieznane narzedzie: ${name}`, "missing_arg");
         }
