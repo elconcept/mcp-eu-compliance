@@ -38,6 +38,9 @@ jobs:
       - name: Jeden MCP - 10 narzędzi, pełna treść + cytowania
         run: npm run test:unified
 
+      - name: Audyt CELEX dla 14 źródeł polskiego korpusu
+        run: npm run audit:pl-sources > /dev/null
+
       - name: Verify dist artifact
         run: ls -la dist/index.js
 
