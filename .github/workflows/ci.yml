@@ -29,6 +29,9 @@ jobs:
       - name: Drift test
         run: npm run drift
 
+      - name: Offline testy Cellar, TSUE i GDPRhub
+        run: npm run test:live-offline
+
       - name: Conformance - argument validation
         run: npm run test:conformance
 
