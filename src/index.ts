@@ -21,8 +21,8 @@
 // structuredContent.citations:
 //   { regulation, full_name, celex_id, eur_lex_url, article_number?, snapshot }
 //
-// Komplementarny do mcp-eu-sparql (live SPARQL EUR-Lex/CJEU): tamten odkrywa
-// akty na zywo, ten daje verbatim tekst + analize compliance offline.
+// Zintegrowany moduł live (Cellar/TSUE/GDPRhub) + osobny lokalny korpus compliance.
+// Dziesięć endpointów MCP w jednej usłudze; źródła danych pozostają oddzielne.
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -35,6 +35,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import { createHash } from "node:crypto";
+import { LIVE_TOOLS, LIVE_INSTRUCTIONS, callLiveTool } from "./live-eu.js";
 
 // ---------------------------------------------------------------------------
 // Konfiguracja / baza
@@ -181,7 +182,7 @@ function regUrl(sampleUrl: string | null, celex: string | null): string | null {
         return h >= 0 ? sampleUrl.slice(0, h) : sampleUrl;
     }
     return celex
-        ? `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:${celex}`
+        ? `https://eur-lex.europa.eu/legal-content/PL/TXT/?uri=CELEX:${celex}`
         : null;
 }
 
@@ -234,7 +235,11 @@ function buildCitation(reg: RegRow, articleNumber?: string, articleUrl?: string 
         regulation: reg.id,
         full_name: reg.full_name,
         celex_id: reg.celex_id,
-        eur_lex_url: articleUrl ?? reg.eur_lex_url,
+        // Snapshot offline zawiera dziś tekst EN, URL kieruje do oficjalnej wersji PL.
+        eur_lex_url: reg.celex_id
+            ? "https://eur-lex.europa.eu/legal-content/PL/TXT/?uri=CELEX:" + reg.celex_id + (articleNumber ? "#art_" + articleNumber : "")
+            : articleUrl ?? reg.eur_lex_url,
+        snapshot_language: "EN",
         ...(articleNumber ? { article_number: articleNumber } : {}),
         snapshot: snapshot(),
     };
@@ -286,13 +291,13 @@ function buildInstructions(): string {
 
 - **Zakres twardy 14 regulacji** (GDPR, AI_ACT, DORA, NIS2, EIDAS2, CRA, DSA, DMA, DATA_ACT, DGA, LED, EPRIVACY, CYBERSECURITY_ACT, CER). Kazda inna nazwa = bledny argument. Baza (snapshot) zawiera ponad 100 regulacji (aktualnie 116, 2026-07-04; korpus rosnie), ale konektor wystawia tylko te 14.
 - **Verbatim** - tekst zwracany bez przetwarzania modelem. NIE prosc o parafraze "lepszym jezykiem" - to grounding.
-- **Snapshot, NIE zrodlo autentyczne**. Kazda odpowiedz konczy sie disclaimerem: wersja autentyczna = Dziennik Urzedowy UE. Sprawdz aktualnosc w EUR-Lex (CELEX). Swiezosc -> \`mcp-eu-sparql\` (live SPARQL).
+- **Snapshot, NIE zrodlo autentyczne**. Kazda odpowiedz konczy sie disclaimerem: wersja autentyczna = Dziennik Urzedowy UE. Sprawdz aktualnosc w EUR-Lex (CELEX). Bieżące źródła: \`search_by_celex\` oraz \`search_cjeu\` w tym samym MCP. Offline zawiera nadal EN, nie przedstawiaj go jako urzędowej wersji PL.
 - **structuredContent.citations** zawsze wypelnione - regulacja, CELEX, URL EUR-Lex, snapshot. Cytuj te citations w odpowiedzi koncowej.
 
 ## Iteracja po bledach
 
 Tool zwraca \`isError: true\` + tekst opisujacy problem. Typowe kody bledow w tresci:
-- \`out_of_scope\` - regulacja poza 6 ICP. Sprobuj inna z listy lub \`mcp-eu-sparql\` dla pelnego EUR-Lex.
+- \`out_of_scope\` - regulacja poza 14 aktami korpusu. Inne akty znajdziesz przez \`search_by_celex\` w tym samym MCP.
 - \`missing_arg\` - brakujacy wymagany parametr. Przeczytaj inputSchema tooli.
 - \`invalid_args\` - parametr ma zly TYP wobec inputSchema (np. regulations jako tekst zamiast listy). Popraw typ i powtorz - to blad wywolania, nie korpusu.
 - \`empty_query\` - query po normalizacji nie zawiera szukanych slow. Zadaj uzytkownikowi doprecyzowanie.
@@ -427,11 +432,30 @@ const TOOLS = [
     },
 ];
 
+// Narzędzia offline i live działają pod jednym MCP, bez odrębnej autoryzacji.
+const ALL_EU_TOOLS = [...TOOLS, ...LIVE_TOOLS];
+
 type ToolResult = {
     content: { type: "text"; text: string }[];
     structuredContent?: Record<string, unknown>;
     isError?: boolean;
 };
+
+/** Code Mode MCP może eksponować tylko structuredContent, pomijając content.
+ * Zachowujemy oryginalny content bez zmian, ale tekst udostępniamy też w strukturze.
+ * Ważne: zwielokrotnienie payloadu wymaga oceny kosztu i limitów przed produkcją.
+ */
+function withStructuredText(result: ToolResult): ToolResult {
+    const text = result.content.filter(x => x.type === "text").map(x => x.text).join("\n");
+    return {
+        ...result,
+        structuredContent: {
+            ...(result.structuredContent ?? {}),
+            text,
+            text_length: text.length,
+        },
+    };
+}
 
 // Strukturalne kody bledow widoczne dla LLM (drift test test/drift.mjs
 // asercja: kazdy kod tu uzyty musi byc w description odpowiedniego tool +
@@ -777,7 +801,7 @@ function validateArgs(
     toolName: string,
     args: Record<string, unknown>,
 ): { msg: string; code: ErrorCode } | null {
-    const tool = TOOLS.find((t) => t.name === toolName);
+    const tool = ALL_EU_TOOLS.find((t) => t.name === toolName);
     if (!tool) return null;
     const schema = tool.inputSchema as unknown as {
         properties?: Record<string, { type?: string | string[] }>;
@@ -808,12 +832,12 @@ function validateArgs(
 }
 
 const server = new Server(
-    { name: "mcp-eu-compliance", version: "0.4.0" },
-    { capabilities: { tools: {} }, instructions: buildInstructions() },
+    { name: "mcp-eu-compliance", version: "0.5.0" },
+    { capabilities: { tools: {} }, instructions: buildInstructions() + "\n\n" + LIVE_INSTRUCTIONS },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: TOOLS.map((t) => ({
+    tools: ALL_EU_TOOLS.map((t) => ({
         name: t.name,
         description: t.description,
         inputSchema: t.inputSchema,
@@ -829,18 +853,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // narzedzia, a nie zapytaniem do upstreamu ze smieciem w parametrze.
     const invalid = validateArgs(name, a);
     if (invalid) return errorResult(invalid.msg, invalid.code);
+    // Narzędzia Cellar/TSUE/GDPRhub działają przez tę samą sesję MCP.
+    // W odpowiedzi zachowujemy oba pola: content i structuredContent.
+    if (LIVE_TOOLS.some((t) => t.name === name)) {
+        return withStructuredText(await callLiveTool(name, a));
+    }
     try {
         switch (name) {
             case "eu_search":
-                return handleSearch(a);
+                return withStructuredText(handleSearch(a));
             case "eu_article":
-                return handleArticle(a);
+                return withStructuredText(handleArticle(a));
             case "eu_compare":
-                return handleCompare(a);
+                return withStructuredText(handleCompare(a));
             case "eu_check_applicability":
-                return handleApplicability(a);
+                return withStructuredText(handleApplicability(a));
             case "eu_evidence":
-                return handleEvidence(a);
+                return withStructuredText(handleEvidence(a));
             default:
                 return errorResult(`Nieznane narzedzie: ${name}`, "missing_arg");
         }
@@ -855,7 +884,7 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
     process.stderr.write(
-        `mcp-eu-compliance server started (stdio). Korpus snapshot ${snapshot()}, zakres: ${SCOPE.join(", ")}\n`,
+        `mcp-eu-compliance unified server started (stdio, 10 narzędzi). Korpus snapshot ${snapshot()}, zakres: ${SCOPE.join(", ")}\n`,
     );
 }
 

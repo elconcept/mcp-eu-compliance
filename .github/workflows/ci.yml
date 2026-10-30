@@ -29,8 +29,17 @@ jobs:
       - name: Drift test
         run: npm run drift
 
+      - name: Offline testy Cellar, TSUE i GDPRhub
+        run: npm run test:live-offline
+
       - name: Conformance - argument validation
         run: npm run test:conformance
+
+      - name: Jeden MCP - 10 narzędzi, pełna treść + cytowania
+        run: npm run test:unified
+
+      - name: Audyt CELEX dla 14 źródeł polskiego korpusu
+        run: npm run audit:pl-sources > /dev/null
 
       - name: Verify dist artifact
         run: ls -la dist/index.js

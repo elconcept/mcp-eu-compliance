@@ -1,6 +1,6 @@
 {
-  "package_version": "0.4.0",
-  "toolset_sha256": "13865c84d46a718e53ad8560291cdf1027145d16969da756875d48be05118299",
+  "package_version": "0.5.0",
+  "toolset_sha256": "5f88f5a76c41be78a2909d0af5d61dc094f22d3dbbb4376e70f0818bfdd9d7ac",
   "tools": {
     "eu_article": {
       "sha256": "238839babe3a1324c2ffaa0bec96c1939662e366574396110f1b2aff565dccb5",
@@ -227,6 +227,180 @@
           "type": "object"
         },
         "name": "eu_search"
+      }
+    },
+    "search_by_celex": {
+      "sha256": "e6c1c1e2aa8be3fb55154fcac8063bfe825da61e9c1b4c2f49014830215e1b95",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "description": "Znajdz akt prawny UE lub orzeczenie CJEU po numerze CELEX. Numer CELEX jest unikalny i identyfikuje dokument niezaleznie od jezyka. Przyklady: 32016R0679 (RODO), 31995L0046 (uchylona dyrektywa o ochronie danych), 62018CJ0311 (wyrok Schrems II). Zwraca polski tytuł (jeśli dostępny), ECLI (dla orzeczeń) i polski adres EUR-Lex.",
+        "inputSchema": {
+          "properties": {
+            "celex": {
+              "description": "Numer CELEX, np. '32016R0679' (RODO).",
+              "type": "string"
+            }
+          },
+          "required": [
+            "celex"
+          ],
+          "type": "object"
+        },
+        "name": "search_by_celex"
+      }
+    },
+    "search_by_date_range": {
+      "sha256": "7486476f5d7c8e6ad738647631fe82ddbce9ef90b60f9f20f04758d2ec6654a1",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "description": "Znajdz akty prawne UE z zakresu dat (po dacie dokumentu). Opcjonalnie filtruj po typie (REG=rozporzadzenie, DIR=dyrektywa, DEC=decyzja, RECO=zalecenie, OPIN=opinia). Maks. 50 wynikow na zapytanie. Uzyteczne do przegladu aktow z konkretnego okresu legislacyjnego.",
+        "inputSchema": {
+          "properties": {
+            "date_from": {
+              "description": "Data od (YYYY-MM-DD).",
+              "type": "string"
+            },
+            "date_to": {
+              "description": "Data do (YYYY-MM-DD).",
+              "type": "string"
+            },
+            "document_type": {
+              "description": "Skrot typu aktu: REG, DIR, DEC, RECO, OPIN. Pomin zeby objac wszystkie.",
+              "enum": [
+                "REG",
+                "DIR",
+                "DEC",
+                "RECO",
+                "OPIN"
+              ],
+              "type": "string"
+            },
+            "limit": {
+              "description": "Maks. liczba wynikow (1-50). Domyslnie 20.",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "date_from",
+            "date_to"
+          ],
+          "type": "object"
+        },
+        "name": "search_by_date_range"
+      }
+    },
+    "search_cjeu": {
+      "sha256": "e8782fe47ff20cabcaab88ef91383c54bb6c8139c9bf0b7865193b9881367ab2",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "description": "Wyszukaj orzecznictwo Trybunalu Sprawiedliwosci UE (CJEU): wyroki (JUDG), postanowienia (ORDER) i opinie rzecznikow generalnych (OPIN_AG). Opcjonalnie zawez do zakresu dat, typu dokumentu i keyworda w tytule (tytul CJEU zawiera strony sprawy, sygnature i slowa kluczowe wyroku). Zwraca CELEX (np. 62018CJ0311), ECLI, datę wydania, polski tytuł (jeśli dostępny) i adres EUR-Lex PL.",
+        "inputSchema": {
+          "properties": {
+            "date_from": {
+              "description": "Data od (YYYY-MM-DD). Opcjonalna.",
+              "type": "string"
+            },
+            "date_to": {
+              "description": "Data do (YYYY-MM-DD). Opcjonalna.",
+              "type": "string"
+            },
+            "document_type": {
+              "description": "Typ dokumentu: JUDG=wyrok, ORDER=postanowienie, OPIN_AG=opinia rzecznika generalnego. Pomin zeby objac wszystkie trzy.",
+              "enum": [
+                "JUDG",
+                "ORDER",
+                "OPIN_AG"
+              ],
+              "type": "string"
+            },
+            "limit": {
+              "description": "Maks. liczba wynikow (1-50). Domyslnie 20.",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "number"
+            },
+            "query": {
+              "description": "Keyword wyszukiwany w tytule orzeczenia (case-insensitive), np. 'personal data' albo 'Schrems'. Opcjonalny.",
+              "type": "string"
+            }
+          },
+          "required": [],
+          "type": "object"
+        },
+        "name": "search_cjeu"
+      }
+    },
+    "search_cjeu_by_ecli": {
+      "sha256": "124c788ec00dad9496313cb3f3deac406b14489697c0a1009caeef790bb7b9b4",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "description": "Znajdz orzeczenie CJEU po identyfikatorze ECLI (European Case Law Identifier), np. 'ECLI:EU:C:2020:559' (Schrems II). Zwraca CELEX, date wydania, tytul (strony + sygnatura + slowa kluczowe) i EUR-Lex URL.",
+        "inputSchema": {
+          "properties": {
+            "ecli": {
+              "description": "Identyfikator ECLI orzeczenia CJEU, np. 'ECLI:EU:C:2020:559'.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ecli"
+          ],
+          "type": "object"
+        },
+        "name": "search_cjeu_by_ecli"
+      }
+    },
+    "search_gdprhub": {
+      "sha256": "873a81aadfe19c020160a12658f47f107dc1c4fa04ad012cea5f74e8e0de71f3",
+      "descriptor": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "description": "Pelnotekstowe wyszukiwanie w GDPRhub (gdprhub.eu) - wiki projektu noyb agregujaca decyzje krajowych organow ochrony danych (DPA) z calej UE oraz komentarze do artykulow RODO. Zwraca tytul, snippet i URL strony. Licencja tresci: CC BY-NC-SA 4.0 (pole license w kazdej citation).",
+        "inputSchema": {
+          "properties": {
+            "limit": {
+              "description": "Maks. liczba wynikow (1-50). Domyslnie 10.",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "number"
+            },
+            "query": {
+              "description": "Zapytanie pelnotekstowe, np. 'Schrems', 'UODO fine', 'Article 33 notification'.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "name": "search_gdprhub"
       }
     }
   }

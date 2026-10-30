@@ -1,7 +1,7 @@
 {
   "name": "@matematicsolutions/mcp-eu-compliance",
-  "version": "0.4.0",
-  "description": "MCP server - offline EU compliance corpus (EUR-Lex full text via local SQLite FTS5, verbatim zero-LLM) for GDPR, AI Act, DORA, NIS2, eIDAS 2.0, CRA",
+  "version": "0.5.0",
+  "description": "Połączony MCP UE: polskie źródła Cellar/TSUE/CELEX/ECLI i lokalny korpus 14 regulacji",
   "main": "dist/index.js",
   "scripts": {
     "test:descriptors": "node test/descriptor-lock.mjs",
@@ -13,7 +13,10 @@
     "smoke": "node test/smoke.mjs",
     "drift": "node test/drift.mjs",
     "test:conformance": "node test/invalid-args.mjs",
-    "test": "npm run build && npm run drift && npm run test:descriptors && npm run test:conformance && npm run smoke"
+    "test": "npm run build && npm run drift && npm run test:descriptors && npm run test:conformance && npm run test:live-offline && npm run test:unified && npm run smoke",
+    "test:live-offline": "node test/live-offline.mjs",
+    "test:unified": "node test/unified-contract.mjs",
+    "audit:pl-sources": "node scripts/pl-corpus-audit.mjs --json"
   },
   "keywords": [
     "mcp",
