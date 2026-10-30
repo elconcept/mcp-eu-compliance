@@ -182,7 +182,7 @@ function regUrl(sampleUrl: string | null, celex: string | null): string | null {
         return h >= 0 ? sampleUrl.slice(0, h) : sampleUrl;
     }
     return celex
-        ? `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:${celex}`
+        ? `https://eur-lex.europa.eu/legal-content/PL/TXT/?uri=CELEX:${celex}`
         : null;
 }
 
@@ -235,7 +235,11 @@ function buildCitation(reg: RegRow, articleNumber?: string, articleUrl?: string 
         regulation: reg.id,
         full_name: reg.full_name,
         celex_id: reg.celex_id,
-        eur_lex_url: articleUrl ?? reg.eur_lex_url,
+        // Snapshot offline zawiera dziś tekst EN, URL kieruje do oficjalnej wersji PL.
+        eur_lex_url: reg.celex_id
+            ? "https://eur-lex.europa.eu/legal-content/PL/TXT/?uri=CELEX:" + reg.celex_id + (articleNumber ? "#art_" + articleNumber : "")
+            : articleUrl ?? reg.eur_lex_url,
+        snapshot_language: "EN",
         ...(articleNumber ? { article_number: articleNumber } : {}),
         snapshot: snapshot(),
     };
@@ -287,13 +291,13 @@ function buildInstructions(): string {
 
 - **Zakres twardy 14 regulacji** (GDPR, AI_ACT, DORA, NIS2, EIDAS2, CRA, DSA, DMA, DATA_ACT, DGA, LED, EPRIVACY, CYBERSECURITY_ACT, CER). Kazda inna nazwa = bledny argument. Baza (snapshot) zawiera ponad 100 regulacji (aktualnie 116, 2026-07-04; korpus rosnie), ale konektor wystawia tylko te 14.
 - **Verbatim** - tekst zwracany bez przetwarzania modelem. NIE prosc o parafraze "lepszym jezykiem" - to grounding.
-- **Snapshot, NIE zrodlo autentyczne**. Kazda odpowiedz konczy sie disclaimerem: wersja autentyczna = Dziennik Urzedowy UE. Sprawdz aktualnosc w EUR-Lex (CELEX). Swiezosc -> \`mcp-eu-sparql\` (live SPARQL).
+- **Snapshot, NIE zrodlo autentyczne**. Kazda odpowiedz konczy sie disclaimerem: wersja autentyczna = Dziennik Urzedowy UE. Sprawdz aktualnosc w EUR-Lex (CELEX). Bieżące źródła: \`search_by_celex\` oraz \`search_cjeu\` w tym samym MCP. Offline zawiera nadal EN, nie przedstawiaj go jako urzędowej wersji PL.
 - **structuredContent.citations** zawsze wypelnione - regulacja, CELEX, URL EUR-Lex, snapshot. Cytuj te citations w odpowiedzi koncowej.
 
 ## Iteracja po bledach
 
 Tool zwraca \`isError: true\` + tekst opisujacy problem. Typowe kody bledow w tresci:
-- \`out_of_scope\` - regulacja poza 6 ICP. Sprobuj inna z listy lub \`mcp-eu-sparql\` dla pelnego EUR-Lex.
+- \`out_of_scope\` - regulacja poza 14 aktami korpusu. Inne akty znajdziesz przez \`search_by_celex\` w tym samym MCP.
 - \`missing_arg\` - brakujacy wymagany parametr. Przeczytaj inputSchema tooli.
 - \`invalid_args\` - parametr ma zly TYP wobec inputSchema (np. regulations jako tekst zamiast listy). Popraw typ i powtorz - to blad wywolania, nie korpusu.
 - \`empty_query\` - query po normalizacji nie zawiera szukanych slow. Zadaj uzytkownikowi doprecyzowanie.
