@@ -25,6 +25,10 @@ try {
   assert.equal(result.isError, undefined, "Wywołanie offline eu_article musi działać");
   assert.ok(result.content?.[0]?.text?.length > 800, "Zabrakło pełnego pola content dla GDPR art. 33");
   assert.ok(result.structuredContent?.citations?.length >= 1, "Zabrakło structuredContent.citations");
+  assert.equal(result.structuredContent?.text, result.content?.[0]?.text,
+    "Code Mode musi otrzymać pełny tekst w structuredContent bez utraty content");
+  assert.equal(result.structuredContent?.text_length, result.content?.[0]?.text?.length,
+    "Niepoprawna deklaracja długości pełnego tekstu");
   assert.equal(result.structuredContent?.citations?.[0]?.snapshot_language, "EN",
     "Nie wolno udawać, że angielski snapshot jest polskim tekstem prawa");
   assert.ok(result.structuredContent?.citations?.[0]?.eur_lex_url?.includes("/PL/TXT/"),
