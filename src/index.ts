@@ -21,8 +21,8 @@
 // structuredContent.citations:
 //   { regulation, full_name, celex_id, eur_lex_url, article_number?, snapshot }
 //
-// Komplementarny do mcp-eu-sparql (live SPARQL EUR-Lex/CJEU): tamten odkrywa
-// akty na zywo, ten daje verbatim tekst + analize compliance offline.
+// Zintegrowany moduł live (Cellar/TSUE/GDPRhub) + osobny lokalny korpus compliance.
+// Dziesięć endpointów MCP w jednej usłudze; źródła danych pozostają oddzielne.
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -35,6 +35,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import { createHash } from "node:crypto";
+import { LIVE_TOOLS, LIVE_INSTRUCTIONS, callLiveTool } from "./live-eu.js";
 
 // ---------------------------------------------------------------------------
 // Konfiguracja / baza
@@ -427,6 +428,9 @@ const TOOLS = [
     },
 ];
 
+// Narzędzia offline i live działają pod jednym MCP, bez odrębnej autoryzacji.
+const ALL_EU_TOOLS = [...TOOLS, ...LIVE_TOOLS];
+
 type ToolResult = {
     content: { type: "text"; text: string }[];
     structuredContent?: Record<string, unknown>;
@@ -777,7 +781,7 @@ function validateArgs(
     toolName: string,
     args: Record<string, unknown>,
 ): { msg: string; code: ErrorCode } | null {
-    const tool = TOOLS.find((t) => t.name === toolName);
+    const tool = ALL_EU_TOOLS.find((t) => t.name === toolName);
     if (!tool) return null;
     const schema = tool.inputSchema as unknown as {
         properties?: Record<string, { type?: string | string[] }>;
@@ -808,12 +812,12 @@ function validateArgs(
 }
 
 const server = new Server(
-    { name: "mcp-eu-compliance", version: "0.4.0" },
-    { capabilities: { tools: {} }, instructions: buildInstructions() },
+    { name: "mcp-eu-compliance", version: "0.5.0" },
+    { capabilities: { tools: {} }, instructions: buildInstructions() + "\n\n" + LIVE_INSTRUCTIONS },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: TOOLS.map((t) => ({
+    tools: ALL_EU_TOOLS.map((t) => ({
         name: t.name,
         description: t.description,
         inputSchema: t.inputSchema,
@@ -829,6 +833,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // narzedzia, a nie zapytaniem do upstreamu ze smieciem w parametrze.
     const invalid = validateArgs(name, a);
     if (invalid) return errorResult(invalid.msg, invalid.code);
+    // Narzędzia Cellar/TSUE/GDPRhub działają przez tę samą sesję MCP.
+    // W odpowiedzi zachowujemy oba pola: content i structuredContent.
+    if (LIVE_TOOLS.some((t) => t.name === name)) {
+        return await callLiveTool(name, a);
+    }
     try {
         switch (name) {
             case "eu_search":
@@ -855,7 +864,7 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
     process.stderr.write(
-        `mcp-eu-compliance server started (stdio). Korpus snapshot ${snapshot()}, zakres: ${SCOPE.join(", ")}\n`,
+        `mcp-eu-compliance unified server started (stdio, 10 narzędzi). Korpus snapshot ${snapshot()}, zakres: ${SCOPE.join(", ")}\n`,
     );
 }
 
